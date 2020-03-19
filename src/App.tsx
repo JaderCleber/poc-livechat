@@ -1,6 +1,8 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import logo from "./logo.svg";
+// @ts-ignore
+import LiveChat from "react-livechat";
+import "./App.css";
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           Learn React
         </a>
       </header>
+
+      <LiveChat license={process.env.LICENSE_ID} />
     </div>
   );
 }
