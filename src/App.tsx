@@ -5,7 +5,7 @@ import LiveChat from "react-livechat";
 import "./App.css";
 
 function App() {
-  console.log("process.env.LICENSE_ID", process.env.LICENSE_ID);
+  console.log("process.env.LICENSE_ID", process.env.REACT_APP_LICENSE_ID);
   return (
     <div className="App">
       <header className="App-header">
