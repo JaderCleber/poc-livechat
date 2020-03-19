@@ -22,7 +22,7 @@ function App() {
         </a>
       </header>
 
-      <LiveChat license={"11782065"} />
+      <LiveChat license={process.env.LICENSE_ID} />
     </div>
   );
 }
