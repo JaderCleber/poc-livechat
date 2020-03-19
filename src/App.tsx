@@ -22,7 +22,10 @@ function App() {
         </a>
       </header>
 
-      <LiveChat license={process.env.REACT_APP_LICENSE_ID} />
+      <LiveChat
+        license={process.env.REACT_APP_LICENSE_ID}
+        visitor={{ name: "John", email: "john@example.com" }}
+      />
     </div>
   );
 }
