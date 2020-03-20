@@ -14,8 +14,8 @@ export default function Message({
   avatar
 }: MessageProps) {
   return (
-    <div className={"message-container"} id={id}>
-      <img className="agent-avatar" src={avatar} />
+    <div className={`message-container ${authorType}`} id={id}>
+      <img className="agent-avatar" src={avatar} alt="" />
 
       <div className="message">{text}</div>
     </div>
