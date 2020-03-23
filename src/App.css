@@ -171,7 +171,7 @@ button:hover {
 
 .chat-item-content {
   flex-grow: 1;
-  min-width: 0;
+  max-width: 0;
 
   color: #636f7e;
 }
@@ -400,22 +400,34 @@ button:hover {
 
 #lc-loader {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: calc(50% - 70px / 2);
+  left: calc(50% - 70px / 2);
   transform: translateX(-50%) translateY(-50%);
-  width: 3em;
+
+  border: 10px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 10px solid blue;
+  border-bottom: 10px solid blue;
+  width: 70px;
+  height: 70px;
+  -webkit-animation: spin 1.5s linear infinite;
+  animation: spin 1.5s linear infinite;
 }
 
-#lc-loader .circle {
-  transform-origin: 36px 36px;
-  animation: spin 1s infinite linear;
+/* Safari */
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
 }
 
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }

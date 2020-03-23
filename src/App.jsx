@@ -12,6 +12,7 @@ const historyStates = {
 const noop = () => {};
 
 const customerSDK = CustomerSDK.init({ //CustomerSDK.debug(
+  //
   clientId: process.env.REACT_APP_CLIENT_ID,
   license: Number(process.env.REACT_APP_LICENSE_ID)
 });
@@ -103,19 +104,21 @@ function App() {
   customerSDK.on("user_data", user => (users[user.id] = user));
 
   customerSDK.on("connected", ({ chatsSummary, totalChats }) => {
+    setTextareaWrapper(true);
+    startChat();
+
     if (state.chat) {
       return;
     }
 
     if (totalChats === 0) {
-      setTextareaWrapper(false);
+      // startChat();
     } else {
       const chat = chatsSummary[0].id;
       const active = chatsSummary[0].active;
 
       loadInitialHistory(chat)
         .then(done => {
-          setTextareaWrapper(true);
           setState({
             ...state,
             chat,
@@ -146,6 +149,7 @@ function App() {
 
     activateChat()
       .then(({ id: chatId }) => {
+        loadInitialHistory(chatId);
         setTextareaWrapper(true);
         state.pendingMessages.forEach(
           ({ messageId: customId, text: message }) =>
@@ -215,27 +219,19 @@ function App() {
       <div id="lc">
         <div id="lc-header">
           <div style={{ width: "24px", height: "24px" }}></div>
-          <div>Fala comigo bebê!</div>
-          {/* <button id="minimize">
-            <svg
-              fill="#5a6976"
-              height="24"
-              width="24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-              <path d="M0 0h24v24H0z" fill="none" />
-            </svg>
-          </button> */}
+          <div>Bem-vindo ao Chat de Atendimento</div>
         </div>
         <div id="chat" ref={chatRef}>
-          {messageList.map(item => (
-            <Message key={`message-${item.id}`} {...item} />
-          ))}
-          {/* {showLoader && <LogoLoader />} */}
+          {textareaWrapper ? (
+            messageList.map(item => (
+              <Message key={`message-${item.id}`} {...item} />
+            ))
+          ) : (
+            <div id="lc-loader"></div>
+          )}
         </div>
         <div id="footer">
-          {textareaWrapper ? (
+          {textareaWrapper && (
             <div id="textarea-wrapper">
               <textarea
                 placeholder="Escreva uma mensagem..."
@@ -256,10 +252,6 @@ function App() {
                 </svg>
               </button>
             </div>
-          ) : (
-            <button onClick={startChat} id="start-chat-button">
-              Start new chat
-            </button>
           )}
         </div>
       </div>
