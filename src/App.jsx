@@ -11,7 +11,8 @@ const historyStates = {
 
 const noop = () => {};
 
-const customerSDK = CustomerSDK.init({ //CustomerSDK.debug(
+const customerSDK = CustomerSDK.init({
+  //CustomerSDK.debug(
   //
   clientId: process.env.REACT_APP_CLIENT_ID,
   license: Number(process.env.REACT_APP_LICENSE_ID)
@@ -21,7 +22,8 @@ const customerSDK = CustomerSDK.init({ //CustomerSDK.debug(
 let history;
 const users = {};
 
-function App() {
+function App(props) {
+  console.log("props", props);
   const chatRef = useRef(null);
   const [state, setState] = useState({
     chat: null,
@@ -176,6 +178,13 @@ function App() {
           pendingMessages: []
         });
       });
+
+    const params = window.location.search.substr(1);
+    if (params) {
+      const paramName = (params.split("&") || [])[0] || "";
+      const name = decodeURI((paramName.split("=") || [])[1]);
+      if (name) customerSDK.updateCustomer({ name });
+    }
   };
 
   const handleSend = () => {
