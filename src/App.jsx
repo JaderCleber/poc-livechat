@@ -1,30 +1,29 @@
-import React, { useState, useEffect, useRef } from "react";
-import * as CustomerSDK from "./libs/customer-sdk";
-import Message from "./components/Message";
-import "./App.css";
+import React, { useState, useEffect, useRef } from 'react'
+// import * as CustomerSDK from './libs/customer-sdk'
+import * as CustomerSDK from '@livechat/customer-sdk'
+import Message from './components/Message'
+import './App.css'
 
 const historyStates = {
-  DONE: "DONE",
-  INACTIVE: "INACTIVE",
-  LOADING: "LOADING"
-};
+  DONE: 'DONE',
+  INACTIVE: 'INACTIVE',
+  LOADING: 'LOADING'
+}
 
-const noop = () => {};
+const noop = () => {}
 
-const customerSDK = CustomerSDK.init({
-  //CustomerSDK.debug(
-  //
-  clientId: process.env.REACT_APP_CLIENT_ID,
-  license: Number(process.env.REACT_APP_LICENSE_ID)
-});
-// );
+const customerSDK = CustomerSDK.debug(
+  CustomerSDK.init({
+    clientId: process.env.REACT_APP_CLIENT_ID,
+    licenseId: Number(process.env.REACT_APP_LICENSE_ID)
+  })
+)
 
-let history;
-const users = {};
+let history
+const users = {}
 
 function App(props) {
-  console.log("props", props);
-  const chatRef = useRef(null);
+  const chatRef = useRef(null)
   const [state, setState] = useState({
     chat: null,
     active: false,
@@ -32,131 +31,201 @@ function App(props) {
     pendingMessages: [],
     customerId: null,
     historyStatus: historyStates.INACTIVE
-  });
+  })
 
-  const [textareaWrapper, setTextareaWrapper] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageList, setMessageList] = useState([]);
+  const [textareaWrapper, setTextareaWrapper] = useState(false)
+  const [message, setMessage] = useState('')
+  const [messageList, setMessageList] = useState([])
 
   useEffect(() => {
+    // window.open('https://direct.lc.chat/11782065', '_self')
     if (chatRef && chatRef.current)
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-  }, [messageList]);
+      chatRef.current.scrollTop = chatRef.current.scrollHeight
+  }, [messageList])
 
   const loadInitialHistory = chatId => {
-    history = customerSDK.getChatHistory(chatId);
-    const loadLatestHistory = () => loadHistory(chatId);
+    history = customerSDK.getChatHistory({ chatId })
+    const loadLatestHistory = () => loadHistory(chatId)
 
     return loadLatestHistory()
       .catch(() => loadLatestHistory())
-      .catch(noop);
-  };
+      .catch(noop)
+  }
 
   const loadHistory = chat => {
     return new Promise((resolve, reject) => {
       history.next().then(
         ({ value: events, done }) => {
           if (!events) {
-            return;
+            return
           }
 
           const messages = events
-            .filter(event => event.type === "message")
+            .filter(event => event.type === 'message')
             .map(event => {
-              const author = users[event.author] || {};
+              const author = users[event.author] || {}
               return {
                 id: event.id,
                 text: event.text,
-                authorType: isAgent(author) ? "agent" : "customer",
+                authorType: isAgent(author) ? 'agent' : 'customer',
                 avatar: author.avatar
-              };
-            });
-          setMessageList(messages);
-          resolve();
+              }
+            })
+          setMessageList(messages)
+          resolve()
         },
         err => {
-          console.log("falha carregando o historico", err);
-          reject(err);
+          console.log('falha carregando o historico', err)
+          reject(err)
         }
-      );
-    });
-  };
+      )
+    })
+  }
 
-  const isAgent = user => user.id !== state.customerId;
+  const isAgent = user => user.id !== state.customerId
 
-  customerSDK.on("new_event", ({ chat, event }) => {
-    if (!state.chat || event.type !== "message") {
-      return;
+  customerSDK.on('new_event', ({ chat, event }) => {
+    console.log('new_event')
+    if (!state.chat || event.type !== 'message') {
+      return
     }
-    const author = users[event.author];
+    const author = users[event.author]
     setMessageList([
       ...messageList,
       {
         text: event.text,
         id: event.id,
         avatar: author && author.avatar,
-        authorType: isAgent(author) ? "agent" : "customer"
+        authorType: isAgent(author) ? 'agent' : 'customer'
       }
-    ]);
-  });
+    ])
+  })
 
-  customerSDK.on("customer_id", id => {
-    setState({ ...state, customerId: id });
-  });
-  customerSDK.on("user_data", user => (users[user.id] = user));
+  customerSDK.on('close', e => {
+    console.log('onerror', e)
+  })
 
-  customerSDK.on("connected", ({ chatsSummary, totalChats }) => {
-    setTextareaWrapper(true);
-    startChat();
+  customerSDK.on('customer_id', id => {
+    setState({ ...state, customerId: id })
+  })
+  customerSDK.on('user_data', user => {
+    console.log('user_data', user)
+    users[user.id] = user
+  })
 
-    if (state.chat) {
-      return;
-    }
+  customerSDK.on('user_added_to_chat', payload => {
+    const { chatId, user, present } = payload
+    console.log('user_added_to_chat', { chatId, user, present })
+  })
 
-    if (totalChats === 0) {
-      // startChat();
-    } else {
-      const chat = chatsSummary[0].id;
-      const active = chatsSummary[0].active;
+  customerSDK.on('event_properties_updated', payload => {
+    const { chatId, threadId, eventId, properties } = payload
+    console.log('event_properties_updated', {
+      chatId,
+      threadId,
+      eventId,
+      properties
+    })
+  })
 
-      loadInitialHistory(chat)
-        .then(done => {
-          setState({
-            ...state,
-            chat,
-            active,
-            historyStatus: done ? historyStates.DONE : historyStates.INACTIVE
-          });
-        })
-        .catch(e => {
-          console.log("erro carregando historico", e);
-          setState({ ...state, historyStatus: historyStates.INACTIVE });
-        });
-    }
-  });
+  customerSDK.on('chat_properties_updated', payload => {
+    const { chatId, properties } = payload
+    console.log('chat_properties_updated', { chatId, properties })
+    setState({ ...state, chat: chatId })
+  })
+
+  customerSDK.on('queue_position_updated', payload => {
+    console.log(payload.chatId)
+    console.log(payload.threadId)
+    console.log(payload.queue.position)
+    console.log(payload.queue.waitTime)
+  })
+
+  customerSDK.on('get_chat', payload => {
+    console.log('get_chat', payload)
+  })
+
+  customerSDK.on('update_customer', payload => {
+    console.log('update_customer', payload)
+  })
+
+  customerSDK.on('set_chat_active', payload => {
+    console.log('set_chat_active', payload)
+  })
+
+  customerSDK.on('start_connection', payload => {
+    console.log('start_connection', payload)
+  })
+
+  customerSDK.on('list_chats', payload => {
+    console.log('list_chats', payload)
+  })
+
+  customerSDK.on('start_chat', payload => {
+    console.log('start_chat', payload)
+  })
+
+  customerSDK.on('connected', payload => {
+    const { customer, availability, greeting } = payload
+    console.log('connected', { customer, availability, greeting })
+    setTextareaWrapper(true)
+    // setTimeout(() => handleSend(), 2000)
+    // startChat()
+    // sendMessage('state.chat', 1000, 'start connect')
+    // startChat()
+
+    // if (state.chat) {
+    //   return
+    // }
+
+    // if (customer === 0) {
+    //   // startChat();
+    // } else {
+    //   // const chat = chatsSummary[0].id
+    //   // const active = chatsSummary[0].active
+    //   const chat = 'OU0V0P0OWT'
+    //   const active = true
+
+    //   loadInitialHistory(chat)
+    //     .then(done => {
+    //       setState({
+    //         ...state,
+    //         chat,
+    //         active,
+    //         historyStatus: done ? historyStates.DONE : historyStates.INACTIVE
+    //       })
+    //     })
+    //     .catch(e => {
+    //       console.log('erro carregando historico', e)
+    //       setState({ ...state, historyStatus: historyStates.INACTIVE })
+    //     })
+    // }
+  })
 
   const sendMessage = (chat, id, text) => {
-    const message = { customId: id, text, type: "message" };
+    const message = { customId: id, text, type: 'message' }
+    console.log('sendMessage', chat, id, text)
 
-    customerSDK.sendEvent(chat, message).then(() => {
-      console.log("falha no envio da mensagem", id);
-    });
-  };
+    customerSDK.sendEvent({ chatId: chat, event: message }).then(() => {
+      // customerSDK.sendEvent(chat, message).then(() => {
+      console.log('falha no envio da mensagem', id)
+    })
+  }
 
   const startChat = () => {
-    setState({ ...state, activating: true });
+    setState({ ...state, activating: true })
     const activateChat = state.chat
       ? customerSDK.activateChat.bind(null, state.chat)
-      : customerSDK.startChat;
+      : customerSDK.startChat
 
     activateChat()
       .then(({ id: chatId }) => {
-        loadInitialHistory(chatId);
-        setTextareaWrapper(true);
+        loadInitialHistory(chatId)
+        setTextareaWrapper(true)
         state.pendingMessages.forEach(
           ({ messageId: customId, text: message }) =>
             sendMessage(chatId, customId, message)
-        );
+        )
 
         setState({
           ...state,
@@ -165,99 +234,100 @@ function App(props) {
           activating: false,
           historyStatus: historyStates.DONE,
           pendingMessages: []
-        });
+        })
       })
       .catch(e => {
-        console.log("falha na inicializacao de novo chat", e);
+        customerSDK.activateChat.bind(null, state.chat)
+        console.log('falha na inicializacao de novo chat', e)
         state.pendingMessages.forEach(({ messageId: id }) =>
-          console.log("falha enviando mensagem pendente", id)
-        );
+          console.log('falha enviando mensagem pendente', id)
+        )
         setState({
           ...state,
           activating: false,
           pendingMessages: []
-        });
-      });
+        })
+      })
 
-    const params = window.location.search.substr(1);
+    const params = window.location.search.substr(1)
     if (params) {
-      const paramName = (params.split("&") || [])[0] || "";
-      const name = decodeURI((paramName.split("=") || [])[1]);
-      if (name) customerSDK.updateCustomer({ name });
+      const paramName = (params.split('&') || [])[0] || ''
+      const name = decodeURI((paramName.split('=') || [])[1])
+      if (name) customerSDK.updateCustomer({ name })
     }
-  };
+  }
 
   const handleSend = () => {
-    if (!message) {
-      return;
-    }
+    // if (!message) {
+    //   return
+    // }
 
-    const messageId = `${Math.random() * 1000}`;
+    const messageId = `${Math.random() * 1000}`
 
     if (state.active) {
-      sendMessage(state.chat, messageId, message);
+      sendMessage(state.chat, messageId, message)
     } else {
       if (!state.activating) {
-        startChat();
+        startChat()
       }
       setState({
         ...state,
         pendingMessages: [...state.pendingMessages, { messageId, message }]
-      });
+      })
     }
 
     setMessageList([
       ...messageList,
-      { text: message, id: messageId, authorType: "customer" }
-    ]);
+      { text: message, id: messageId, authorType: 'customer' }
+    ])
 
-    setMessage("");
-  };
+    setMessage('')
+  }
 
-  const handleChangeMessage = e => setMessage(e.target.value);
+  const handleChangeMessage = e => setMessage(e.target.value)
   const handleKeyDown = e => {
     if (e.which !== 13) {
-      return;
+      return
     }
-    e.preventDefault();
-    handleSend();
-  };
+    e.preventDefault()
+    handleSend()
+  }
 
   return (
-    <div className="App">
-      <div id="lc">
-        <div id="lc-header">
-          <div style={{ width: "24px", height: "24px" }}></div>
+    <div className='App'>
+      <div id='lc'>
+        <div id='lc-header'>
+          <div style={{ width: '24px', height: '24px' }}></div>
           <div>Bem-vindo ao Chat de Atendimento</div>
         </div>
-        <div id="chat" ref={chatRef}>
+        <div id='chat' ref={chatRef}>
           {textareaWrapper ? (
             messageList.map(item => (
               <Message key={`message-${item.id}`} {...item} />
             ))
           ) : (
-            <div id="lc-loader"></div>
+            <div id='lc-loader'></div>
           )}
         </div>
-        <div id="footer">
+        <div id='footer'>
           {textareaWrapper && (
-            <div id="textarea-wrapper">
+            <div id='textarea-wrapper'>
               <textarea
-                placeholder="Escreva uma mensagem..."
-                id="message-input"
+                placeholder='Escreva uma mensagem...'
+                id='message-input'
                 value={message}
                 onChange={handleChangeMessage}
                 onKeyDown={handleKeyDown}
               ></textarea>
-              <button id="send-button" onClick={handleSend}>
+              <button id='send-button' onClick={handleSend}>
                 <svg
-                  fill="#b2bbc6"
-                  height="24"
-                  width="24"
-                  xmlns="http://www.w3.org/2000/svg"
+                  fill='#b2bbc6'
+                  height='24'
+                  width='24'
+                  xmlns='http://www.w3.org/2000/svg'
                 >
-                  <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                  <path d="M0 0h24v24H0z" fill="none" />
+                  <path d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z' />
+                  <path d='M0 0h24v24H0z' fill='none' />
                 </svg>
               </button>
             </div>
@@ -265,7 +335,7 @@ function App(props) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
